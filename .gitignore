@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+*.zip
+*.log
+.env
+.DS_Store
+make_frontend.py
+update_*.py
+frontend.txt
