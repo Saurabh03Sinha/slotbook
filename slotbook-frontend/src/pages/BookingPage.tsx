@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { DateTime } from 'luxon';
-import { Clock, Users, Globe, CheckCircle2, AlertCircle, ArrowLeft, ShieldAlert, CalendarCheck } from 'lucide-react';
+import { Clock, Users, Globe, CheckCircle2, AlertCircle, ArrowLeft, ShieldAlert, CalendarCheck, LogOut } from 'lucide-react';
 
 interface Slot {
   startUtc: string;
@@ -42,11 +42,12 @@ export default function BookingPage() {
   const { host = 'alex', slug = 'intro-call' } = useParams();
   const navigate = useNavigate();
 
-  // Check if host is currently logged in
   const [hostToken, setHostToken] = useState<string | null>(() =>
     localStorage.getItem('slotbook_host_token')
   );
   const isHostLoggedIn = Boolean(hostToken);
+
+  const [hostDisplayName, setHostDisplayName] = useState<string>('Godfrey Loux');
 
   const [tz, setTz] = useState<string>(() => {
     const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -72,13 +73,37 @@ export default function BookingPage() {
   const isEmailValid = EMAIL_REGEX.test(guestEmail.trim());
   const isNameValid = guestName.trim().length >= 2;
 
-  // Keep hostToken in sync if localStorage changes
+  // Listen for instant login/logout changes from navbar or other tabs without needing manual page refresh
   useEffect(() => {
-    setHostToken(localStorage.getItem('slotbook_host_token'));
-  }, [host, slug]);
+    const syncAuth = () => {
+      const current = localStorage.getItem('slotbook_host_token');
+      setHostToken((prev) => {
+        if (prev !== current) {
+          setError(null);
+        }
+        return current;
+      });
+    };
 
-  // 1. Fetch available slots using exact Minimum API signature:
-  //    GET /api/hosts/{host}/events/{slug}/slots?from&to&tz
+    window.addEventListener('slotbook-auth-change', syncAuth);
+    window.addEventListener('storage', syncAuth);
+    const interval = setInterval(syncAuth, 250);
+
+    return () => {
+      window.removeEventListener('slotbook-auth-change', syncAuth);
+      window.removeEventListener('storage', syncAuth);
+      clearInterval(interval);
+    };
+  }, []);
+
+  function handleInlineLogout() {
+    localStorage.removeItem('slotbook_host_token');
+    setHostToken(null);
+    setError(null);
+    window.dispatchEvent(new Event('slotbook-auth-change'));
+  }
+
+  // 1. Fetch available slots: GET /api/hosts/{host}/events/{slug}/slots?from&to&tz
   useEffect(() => {
     async function loadSlots() {
       setLoading(true);
@@ -101,6 +126,9 @@ export default function BookingPage() {
         }
         const data = await res.json();
         setEventMeta(data.event);
+        if (data.host?.name) {
+          setHostDisplayName(data.host.name);
+        }
         setSlots(data.slots);
 
         if (data.slots.length > 0) {
@@ -151,7 +179,7 @@ export default function BookingPage() {
   // 2. Request a 5-minute slot hold via POST /api/holds
   async function handleSelectSlot(slot: Slot) {
     if (isHostLoggedIn) {
-      setError('You are signed in as Host (@alex). Hosts can only view bookings and cannot book slots.');
+      setError(`You are signed in as Host (${hostDisplayName}). Hosts can only view bookings and cannot book slots.`);
       return;
     }
 
@@ -251,16 +279,26 @@ export default function BookingPage() {
           <div className="flex items-center gap-2.5">
             <ShieldAlert className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span>
-              <strong>Signed in as Host (@alex):</strong> Booking slots is disabled in Host mode. You can inspect your live schedule below or view upcoming reservations in your dashboard.
+              <strong>Signed in as Host ({hostDisplayName} / @{host}):</strong> Booking slots is disabled in Host mode. Inspect your live schedule below or view upcoming reservations in your dashboard.
             </span>
           </div>
-          <Link
-            to="/host"
-            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap transition"
-          >
-            <CalendarCheck className="w-3.5 h-3.5" />
-            <span>See Bookings</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/host"
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap transition"
+            >
+              <CalendarCheck className="w-3.5 h-3.5" />
+              <span>See Bookings</span>
+            </Link>
+            <button
+              type="button"
+              onClick={handleInlineLogout}
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Switch to Guest</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -288,7 +326,7 @@ export default function BookingPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200">
         <div className="p-6 md:p-8 bg-slate-50/60">
           <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-1">
-            Host: @{host}
+            Host: {hostDisplayName} (@{host})
           </div>
           <h1 className="text-2xl font-bold text-slate-900 mb-3">
             {eventMeta ? eventMeta.name : 'Loading event...'}

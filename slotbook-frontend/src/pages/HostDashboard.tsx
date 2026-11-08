@@ -304,7 +304,7 @@ export default function HostDashboard({ onAuthChange }: { onAuthChange?: (token:
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Host Dashboard</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Signed in as <strong>{hostProfile?.name || 'Alex Rivera'}</strong> (@{hostProfile?.username || 'alex'}) &bull; Home Timezone:{' '}
+            Signed in as <strong>{hostProfile?.name || 'Godfrey Loux'}</strong> (@{hostProfile?.username || 'alex'}) &bull; Home Timezone:{' '}
             <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700">{hostProfile?.timeZone || 'America/New_York'}</span>
           </p>
         </div>

@@ -15,7 +15,7 @@ export async function seedDatabase(): Promise<{
 
     const hostRes = await client.query(
       `INSERT INTO hosts (username, email, name, time_zone, api_key)
-       VALUES ('alex', 'alex@slotbook.dev', 'Alex Rivera', 'America/New_York', $1)
+       VALUES ('alex', 'alex@slotbook.dev', 'Godfrey Loux', 'America/New_York', $1)
        ON CONFLICT (username) DO UPDATE
        SET email = EXCLUDED.email,
            name = EXCLUDED.name,

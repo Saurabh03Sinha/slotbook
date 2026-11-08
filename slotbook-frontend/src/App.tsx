@@ -27,7 +27,7 @@ export default function App() {
   }, [location.pathname]);
 
   function handleLogout() {
-    localStorage.removeItem('slotbook_host_token');
+    localStorage.removeItem('slotbook_host_token'); window.dispatchEvent(new Event('slotbook-auth-change'));
     localStorage.removeItem('slotbook_host_profile');
     setHostToken(null);
     navigate('/alex/intro-call');
