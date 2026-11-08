@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: slotbook-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: slotbook
+      POSTGRES_PASSWORD: slotbook
+      POSTGRES_DB: slotbook
+    ports:
+      - "5432:5432"
+    volumes:
+      - slotbook_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotbook -d slotbook"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+volumes:
+  slotbook_pgdata:
